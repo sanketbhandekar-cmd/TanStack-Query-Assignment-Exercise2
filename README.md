@@ -33,3 +33,45 @@ Build a React application that displays users and supports creation and deletion
 6. Simulate a failed delete request and verify the user is restored automatically.
 7. Verify the final cache is synchronized with the server after the mutation settles.
 8. Confirm no manual `useEffect()` is used to refetch users after mutations.
+
+## Implemented Changes Based on Requirements
+
+- **Requirement 1 (`useUsers` Hook):**
+  - Created custom hook `useUsers()` in `src/hooks/useUsers.js` using `useQuery()` with query key `['users']`.
+  - Configured global query defaults in `src/App.jsx` with `staleTime` and `gcTime`.
+
+- **Requirement 2 (`useCreateUser` Hook):**
+  - Created custom hook `useCreateUser()` in `src/hooks/useCreateUser.js` using `useMutation()`.
+  - Added user persistence logic in `src/api/users.js`.
+
+- **Requirement 3 (User Form):**
+  - Created `UserForm` component in `src/components/UserForm.jsx` with input fields for **Name**, **Email**, and **Role** (free-text input allowing any custom role).
+
+- **Requirement 4 (Form Submission & Pending/Error States):**
+  - Form submission triggers `createUserMutation.mutate()`.
+  - Displays pending feedback (`"Adding user to server..."`) and disables the submit button while the mutation is running.
+  - Displays error banner if the mutation fails, and validates required fields.
+
+- **Requirement 5 (Query Invalidation & Server Refresh):**
+  - Added `queryClient.invalidateQueries({ queryKey: ['users'] })` inside the `onSuccess` callback of `useCreateUser()`.
+  - Invalidates the `['users']` query so the list automatically refetches latest data from the server without manual page refresh.
+
+- **Requirement 6 (Delete User Functionality):**
+  - Created custom hook `useDeleteUser()` in `src/hooks/useDeleteUser.js` using `useMutation()` to delete a user by ID.
+
+- **Requirement 7 (Optimistic Deletion with Rollback):**
+  - **Immediate UI Update:** In `onMutate`, immediately removes the user from cache using `queryClient.setQueryData(['users'], ...)`.
+  - **Query Cancellation:** Cancels outgoing queries using `await queryClient.cancelQueries({ queryKey: ['users'] })` so background refetches don't overwrite optimistic data.
+  - **Snapshot & Rollback:** Takes a snapshot of `previousUsers` in `onMutate` and restores it in `onError` if the server request fails.
+  - **Server Synchronization:** In `onSettled`, runs `queryClient.invalidateQueries({ queryKey: ['users'] })` to ensure final cache is synchronized with the server.
+
+- **Requirement 8 (Mutation States):**
+  - Displays appropriate pending, success, and error states for both create and delete mutations.
+  - Shows clear rollback alerts when simulated deletion fails.
+
+- **Additional Features:**
+  - Added a **"Simulate delete failure (test optimistic rollback)"** checkbox to test and demonstrate rollback behavior (Verification Step 6).
+  - Added a **"Reset Users"** button to restore default user data and re-sync the cache.
+  - Integrated **`<ReactQueryDevtools />`** for inspecting query cache status.
+  - Ensured **zero manual `useEffect()`** is used for fetching or refetching server data.
+
